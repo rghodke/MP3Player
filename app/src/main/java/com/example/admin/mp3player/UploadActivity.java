@@ -1,11 +1,13 @@
 package com.example.admin.mp3player;
 
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.webkit.MimeTypeMap;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -16,6 +18,7 @@ import com.parse.ProgressCallback;
 import com.parse.SaveCallback;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
@@ -97,10 +100,18 @@ public class UploadActivity extends AppCompatActivity {
                     String temp = uri.getLastPathSegment();
                     String normalized = Normalizer.normalize(temp, Normalizer.Form.NFD);
                     String result = normalized.replaceAll("[^A-Za-z0-9]", "");
-                    System.out.println(result);
+                    
+
+                    /*
+                    Get content type
+                     */
+                    ContentResolver cR = context.getContentResolver();
+                    MimeTypeMap mime = MimeTypeMap.getSingleton();
+                    String type = mime.getExtensionFromMimeType(cR.getType(uri));
+                    System.out.println(type);
 
 
-                    final ParseFile file = new ParseFile(result, inputData);
+                    final ParseFile file = new ParseFile(result, inputData, "."+type);
                     System.out.println(file);
                     ParseObject fileUpload = new ParseObject("Files");
                     fileUpload.put("File", file);

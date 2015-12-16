@@ -31,6 +31,7 @@ public class MP3List extends AppCompatActivity {
 
     private ListView listView;
     private Button uploadButton;
+    private ArrayAdapter<String> arrayAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,9 +42,6 @@ public class MP3List extends AppCompatActivity {
         getListFromParse();
     }
 
-
-
-    private ArrayAdapter<String> arrayAdapter;
     public void getListFromParse(){
         arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
 
@@ -51,8 +49,16 @@ public class MP3List extends AppCompatActivity {
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> objects, ParseException e) {
                 if (e == null) {
+
+                    if(objects.isEmpty()){
+                        arrayAdapter.add("Upload some files");
+                    }
+
                     for (ParseObject x : objects) {
-                        arrayAdapter.add(x.getParseFile("File").getName());
+
+                        String url = x.getParseFile("File").getName();
+                        String fileName = url.substring(url.lastIndexOf('-') + 1);
+                        arrayAdapter.add(fileName);
                     }
 
                 } else {
@@ -65,6 +71,9 @@ public class MP3List extends AppCompatActivity {
 
         arrayAdapter.notifyDataSetChanged();
     }
+
+
+
 
     public void goUpload(View v){
         Intent intent = new Intent(this, UploadActivity.class);
