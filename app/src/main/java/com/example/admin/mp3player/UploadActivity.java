@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -21,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.text.Normalizer;
 
 public class UploadActivity extends AppCompatActivity {
@@ -33,15 +35,14 @@ public class UploadActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_upload);
         showFileChooser();
-
-
     }
+
 
     private static final int FILE_SELECT_CODE = 0;
 
     private void showFileChooser() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
+        intent.setType("audio/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
 
         try {
@@ -57,21 +58,43 @@ public class UploadActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        System.out.println("Result code is" + " " + resultCode);
         switch (requestCode) {
             case FILE_SELECT_CODE:
                 if (resultCode == RESULT_OK) {
                     // Get the Uri of the selected file
                     Uri uri = data.getData();
                     uploadData(uri);
-
+                }
+                else if (resultCode == RESULT_CANCELED) {
+                    Intent intent = new Intent(this, MP3List.class);
+                    startActivity(intent);
                 }
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    public synchronized void updateProgress(int percentDone){
-        progress.setProgress(percentDone);
+    public static String getPath(Context context, Uri uri) throws URISyntaxException {
+        if ("content".equalsIgnoreCase(uri.getScheme())) {
+            String[] projection = { "_data" };
+            Cursor cursor = null;
+
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                int column_index = cursor.getColumnIndexOrThrow("_data");
+                if (cursor.moveToFirst()) {
+                    return cursor.getString(column_index);
+                }
+            } catch (Exception e) {
+                // Eat it
+            }
+        }
+        else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+
+        return null;
     }
 
 
@@ -100,7 +123,6 @@ public class UploadActivity extends AppCompatActivity {
                     String temp = uri.getLastPathSegment();
                     String normalized = Normalizer.normalize(temp, Normalizer.Form.NFD);
                     String result = normalized.replaceAll("[^A-Za-z0-9]", "");
-                    
 
                     /*
                     Get content type
@@ -110,23 +132,22 @@ public class UploadActivity extends AppCompatActivity {
                     String type = mime.getExtensionFromMimeType(cR.getType(uri));
                     System.out.println(type);
 
-
-                    final ParseFile file = new ParseFile(result, inputData, "."+type);
+                    final ParseFile file = new ParseFile(result, inputData, "." + type);
                     System.out.println(file);
                     ParseObject fileUpload = new ParseObject("Files");
                     fileUpload.put("File", file);
+                        file.saveInBackground(new SaveCallback() {
+                            @Override
+                            public void done(ParseException e) {
+                                progress.dismiss();
+                                progress = null;
+                                Intent intent = new Intent(context, MP3List.class);
+                                startActivity(intent);
+                            }
+                        });
 
-                    file.saveInBackground(new SaveCallback() {
-                         @Override
-                         public void done(ParseException e) {
-                             progress.dismiss();
-                             progress = null;
-                             Intent intent = new Intent(context, MP3List.class);
-                             startActivity(intent);
-                         }
-                    });
+                        fileUpload.saveInBackground();
 
-                    fileUpload.saveInBackground();
 
                 } catch (Exception e) {}
 
