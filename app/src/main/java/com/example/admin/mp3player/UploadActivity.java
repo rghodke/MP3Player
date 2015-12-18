@@ -12,9 +12,11 @@ import android.webkit.MimeTypeMap;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.parse.ParseACL;
 import com.parse.ParseException;
 import com.parse.ParseFile;
 import com.parse.ParseObject;
+import com.parse.ParseUser;
 import com.parse.ProgressCallback;
 import com.parse.SaveCallback;
 
@@ -134,7 +136,17 @@ public class UploadActivity extends AppCompatActivity {
 
                     final ParseFile file = new ParseFile(result, inputData, "." + type);
                     System.out.println(file);
+
+                    ParseACL permissions1  = new ParseACL();
+                    permissions1.setPublicReadAccess(false);
+                    permissions1.setPublicWriteAccess(false);
+                    permissions1.setReadAccess(ParseUser.getCurrentUser(), true);
+                    permissions1.setWriteAccess(ParseUser.getCurrentUser(), true);
+
+
                     ParseObject fileUpload = new ParseObject("Files");
+                    fileUpload.setACL(permissions1);
+
                     fileUpload.put("File", file);
                         file.saveInBackground(new SaveCallback() {
                             @Override
